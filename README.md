@@ -7,3 +7,9 @@ simple build system and stuff
 ```sh
 $ make
 ```
+
+## Help
+
+```sh
+$ make help
+```

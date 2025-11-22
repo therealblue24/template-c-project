@@ -5,11 +5,13 @@ BINDIR = bin
 # app name
 APP = foo
 
+# default compiler flags
 CFLAGS = -std=c11 -Wall -Wextra -Isrc -Iinclude -Ilib -g3
 CFLAGS += -MMD -MP
+# default linker flags
 LDFLAGS = 
 
-# Optimize code (-O2)
+# Optimize code (-O2, etc)
 RELEASE ?= no
 # -Weverything but sane
 CODE_REVIEW ?= no
@@ -18,16 +20,19 @@ SANITIZERS ?= no
 # foritfy source code?
 FORTIFY ?= no
 
+# for release, enable -O2 and LTO
 ifeq ($(RELEASE), yes)
 	CFLAGS += -O2
 	LDFLAGS += -flto
 endif
 
+# fortifying source code enables stack protector and _FORTIFY_SOURCE
 ifeq ($(FORITFY), yes)
 	CFLAGS += -fstack-protector -D_FORTIFY_SOURCE=3
 	LDFLAGS += -fstack-protector
 endif
 
+# -Weverything but better
 ifeq ($(CODE_REVIEW), yes)
 	# Enable EVERYTHING.
     CFLAGS += -Weverything
@@ -43,6 +48,7 @@ ifeq ($(CODE_REVIEW), yes)
     CFLAGS += -Wno-date-time
 endif
 
+# memory debugging
 ifeq ($(SANITIZERS), yes)
 	CFLAGS += -fsanitize=undefined,address,leak
 	LDFLAGS += -fsanitize=undefined,address,leak
@@ -58,9 +64,29 @@ DEP = $(OBJ:.o=.d)
 # arguments to pass to program w/ `make test`
 TESTARGS =
 
-.PHONY: dirs build test link test
+# all possible things
+.PHONY: dirs build test link test help clean compile
 
+# default action
 all: dirs build link
+
+# help screen
+help:
+	@echo "make build - build (not link) project"
+	@echo "make link - link project"
+	@echo "make compile - build & link"
+	@echo "make clean - remove all binaries"
+	@echo "make test - test project"
+	@echo "make dirs - create binary directory"
+	@echo "make help - this screen"
+	@echo "make - default: dirs, build, link"
+	@echo "==============FLAGS=================="
+	@echo "CC\t\tC compiler"
+	@echo "RELEASE\t\tyes/no for release build"
+	@echo "CODE_REVIEW\tyes/no for code reviewing"
+	@echo "SANITIZERS\tyes/no to enable sanitizers"
+	@echo "FORTIFY\t\tyes/no to fortify code"
+	@echo "TESTARGS\targs to pass to 'make test'"
 
 dirs:
 	@# Create bin dir
@@ -74,19 +100,26 @@ $(BINDIR)/%.o: src/%.c
 # include deps
 -include $(DEP)
 
+# build target
 build: dirs $(OBJ)
 
+# compile target
 $(BINDIR)/$(APP): link
-	
+
+compile: build link
+
+# link target
 link: build
 	@echo "linking $(APP)"
 	@$(CC) -o $(BINDIR)/$(APP) $(LDFLAGS) $(OBJ)
 	@echo "made $(APP)"
 
+# remove bins
 clean:
 	@echo "cleaning"
 	rm -rf $(BINDIR)
 	@echo "cleaned"
 
+# test app
 test: $(BINDIR)/$(APP)
 	@$(BINDIR)/$(APP) $(TESTARGS)
